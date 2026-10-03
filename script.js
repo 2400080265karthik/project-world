@@ -1579,11 +1579,153 @@ document.addEventListener("DOMContentLoaded", function () {
 
     async function sendAIMessage() {
 
-        const userText = aiInput.value.trim();
+      const userText = aiInput.value.trim();
 
-        if (!userText) {
-            return;
-        }
+if (!userText) {
+    return;
+}
+
+addAIMessage(userText, "user");
+
+aiInput.value = "";
+
+const query = userText.toLowerCase();
+
+let allProjects = [];
+
+Object.keys(projects).forEach(domain => {
+    projects[domain].forEach(project => {
+        allProjects.push({
+            ...project,
+            domain: domain
+        });
+    });
+});
+
+let matches = allProjects;
+
+// Domain matching
+const domainKeywords = {
+    "ai": "AI & Machine Learning",
+    "machine learning": "AI & Machine Learning",
+    "web": "Web Development",
+    "website": "Web Development",
+    "app": "App Development",
+    "mobile": "App Development",
+    "cyber": "Cyber Security",
+    "security": "Cyber Security",
+    "gaming": "Gaming",
+    "game": "Gaming",
+    "data": "Data Science",
+    "data science": "Data Science",
+    "iot": "IoT"
+};
+
+for (const keyword in domainKeywords) {
+    if (query.includes(keyword)) {
+        matches = matches.filter(
+            project => project.domain === domainKeywords[keyword]
+        );
+        break;
+    }
+}
+
+// Difficulty matching
+if (query.includes("easy")) {
+    matches = matches.filter(
+        project => project.difficulty === "Easy"
+    );
+}
+
+if (query.includes("intermediate")) {
+    matches = matches.filter(
+        project => project.difficulty === "Intermediate"
+    );
+}
+
+if (query.includes("advanced")) {
+    matches = matches.filter(
+        project => project.difficulty === "Advanced"
+    );
+}
+
+// Budget matching
+const budgetMatch = query.match(
+    /(?:under|below|less than|within)\s*₹?\s*(\d+)/
+);
+
+if (budgetMatch) {
+    const budget = Number(budgetMatch[1]);
+
+    matches = matches.filter(
+        project => project.price <= budget
+    );
+}
+
+// If no special filter matched, search project names/descriptions
+if (matches.length === allProjects.length) {
+
+    const words = query
+        .split(/\s+/)
+        .filter(word => word.length > 2);
+
+    const keywordMatches = allProjects.filter(project => {
+
+        const text = (
+            project.name +
+            " " +
+            project.description +
+            " " +
+            project.domain
+        ).toLowerCase();
+
+        return words.some(word => text.includes(word));
+
+    });
+
+    if (keywordMatches.length > 0) {
+        matches = keywordMatches;
+    }
+}
+
+// Show results
+setTimeout(() => {
+
+    if (matches.length === 0) {
+
+        addAIMessage(
+            "I couldn't find a project matching your requirements. Try something like:<br><br>" +
+            "• I want an AI project<br>" +
+            "• Give me an easy project<br>" +
+            "• I need a project under ₹1000<br>" +
+            "• I want a web project",
+            "bot"
+        );
+
+        return;
+    }
+
+    const results = matches.slice(0, 3);
+
+    let reply = "🤖 Here are some projects you may like:<br><br>";
+
+    results.forEach(project => {
+
+        reply +=
+            `<strong>${project.icon} ${project.name}</strong><br>` +
+            `📂 ${project.domain}<br>` +
+            `📊 ${project.difficulty}<br>` +
+            `💰 ₹${project.price}<br><br>`;
+
+    });
+
+    reply += "You can ask me for another domain, difficulty, or budget.";
+
+    addAIMessage(reply, "bot");
+
+}, 400);
+
+return;
 
         addAIMessage(userText, "user");
 
